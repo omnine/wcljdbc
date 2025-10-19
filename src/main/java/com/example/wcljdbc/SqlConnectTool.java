@@ -66,10 +66,18 @@ public final class SqlConnectTool {
 
         String encrypt = options.getOrDefault("encrypt", "true");
         String trustCert = options.getOrDefault("trustServerCertificate", "false");
-        String authScheme = options.get("authenticationScheme");
-        if (authScheme == null && domain != null && !domain.isEmpty()) {
-            authScheme = "NativeAuthentication";
+        String integratedSecurity = options.get("integratedSecurity");
+        if (integratedSecurity == null && domain != null && !domain.isEmpty()) {
+            integratedSecurity = "true";
         }
+
+        String authScheme = options.get("authenticationScheme");
+        if (authScheme == null && integratedSecurity != null
+                && "true".equalsIgnoreCase(integratedSecurity)) {
+            authScheme = "NTLM";
+        }
+
+        String serverSpn = options.get("serverSpn");
 
         StringBuilder urlBuilder = new StringBuilder();
         urlBuilder.append("jdbc:sqlserver://").append(host).append(":").append(port);
@@ -78,11 +86,17 @@ public final class SqlConnectTool {
         }
         urlBuilder.append(";encrypt=").append(encrypt);
         urlBuilder.append(";trustServerCertificate=").append(trustCert);
+        if (integratedSecurity != null && !integratedSecurity.isEmpty()) {
+            urlBuilder.append(";integratedSecurity=").append(integratedSecurity);
+        }
         if (authScheme != null && !authScheme.isEmpty()) {
             urlBuilder.append(";authenticationScheme=").append(authScheme);
         }
         if (domain != null && !domain.isEmpty()) {
             urlBuilder.append(";domain=").append(domain);
+        }
+        if (serverSpn != null && !serverSpn.isEmpty()) {
+            urlBuilder.append(";serverSpn=").append(serverSpn);
         }
 
         String url = urlBuilder.toString();
@@ -92,6 +106,15 @@ public final class SqlConnectTool {
         props.setProperty("password", password);
         if (domain != null && !domain.isEmpty()) {
             props.setProperty("domain", domain);
+        }
+        if (integratedSecurity != null && !integratedSecurity.isEmpty()) {
+            props.setProperty("integratedSecurity", integratedSecurity);
+        }
+        if (authScheme != null && !authScheme.isEmpty()) {
+            props.setProperty("authenticationScheme", authScheme);
+        }
+        if (serverSpn != null && !serverSpn.isEmpty()) {
+            props.setProperty("serverSpn", serverSpn);
         }
 
         try {
@@ -140,12 +163,12 @@ public final class SqlConnectTool {
     System.out.println("Usage: java -jar wcljdbc.jar --host <hostname> [--port <port>] "
         + "[--database <db>] [--domain <domain>] --username <username> [--password <password>] "
         + "[--encrypt <true|false>] [--trustServerCertificate <true|false>] "
-        + "[--authenticationScheme <scheme>]");
+        + "[--integratedSecurity <true|false>] [--authenticationScheme <scheme>] [--serverSpn <spn>]");
         System.out.println();
         System.out.println("Examples:");
     System.out.println("  java -jar wcljdbc.jar --host sqlserver.example.com --port 1433 --database Sales "
-        + "--domain CONTOSO --username alice --password S3cret");
-    System.out.println("  java -jar wcljdbc.jar --host 10.0.0.4 --domain CONTOSO --username bob");
+        + "--domain CONTOSO --username alice --password S3cret --integratedSecurity true");
+    System.out.println("  java -jar wcljdbc.jar --host 10.0.0.4 --domain CONTOSO --username bob --integratedSecurity true");
         System.out.println();
         System.out.println("If --password is omitted, the tool prompts securely when possible.");
     }
